@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Flex Sensor Data</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <style>
+    /* Dark mode toggle button styles */
+    #toggleTheme {
+      background: transparent;
+      border: none;
+      font-size: 20px;
+      color: #fff;
+      cursor: pointer;
+    }
+
+    /* Snackbar styles */
+    #snackbar {
+      visibility: hidden;
+      min-width: 250px;
+      margin-left: -125px;
+      background-color: #333;
+      color: #fff;
+      text-align: center;
+      border-radius: 5px;
+      padding: 16px;
+      position: fixed;
+      z-index: 1;
+      left: 50%;
+      bottom: 30px;
+      font-size: 17px;
+    }
+
+    #snackbar.show {
+      visibility: visible;
+      animation: fadein 0.5s, fadeout 0.5s 2.5s;
+    }
+
+    @keyframes fadein {
+      from {
+        bottom: 0;
+        opacity: 0;
+      }
+      to {
+        bottom: 30px;
+        opacity: 1;
+      }
+    }
+
+    @keyframes fadeout {
+      from {
+        bottom: 30px;
+        opacity: 1;
+      }
+      to {
+        bottom: 0;
+        opacity: 0;
+      }
+    }
+
+    html, body {
+      height: 100%;
+    }
+
+    .content-wrapper {
+      min-height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    footer {
+      margin-top: auto;
+    }
+  </style>
+</head>
+<body class="bg-light">
+
+  <div class="content-wrapper">
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+      <div class="container-fluid">
+        <a class="navbar-brand" href="index.html">SitSense</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+          <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+            <li class="nav-item">
+              <a class="nav-link active" aria-current="page" href="index.html">Home</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="history.html">History</a>
+            </li>
+          </ul>
+          <!-- Dark Mode Toggle -->
+          <button id="toggleTheme" class="btn btn-outline-light" aria-label="Toggle Dark Mode">🌙</button>
+        </div>
+      </div>
+    </nav>
+
+    <div class="container">
+      <h1 class="mt-5">Posture Monitoring</h1>
+      <button class="btn btn-primary mt-3" data-bs-toggle="modal" data-bs-target="#patientModal">Enter Patient Info</button>
+      <div class="card mt-3" id="dataCard">
+        <div class="card-body">
+          <h3 id="flexValue">Waiting for data...</h3>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Patient Modal -->
+  <div class="modal fade" id="patientModal" tabindex="-1" aria-labelledby="patientModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="patientModalLabel">Patient Information</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="patientForm">
+            <div class="mb-3">
+              <label for="patientName" class="form-label">Name</label>
+              <input type="text" class="form-control" id="patientName" required>
+            </div>
+            <div class="mb-3">
+              <label for="patientAge" class="form-label">Age</label>
+              <input type="number" class="form-control" id="patientAge" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Submit</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Snackbar -->
+  <div id="snackbar"></div>
+
+  <!-- Footer -->
+  <footer class="bg-dark text-light text-center py-3">
+    <p>&copy; 2024 SitSense. All rights reserved.</p>
+  </footer>
+
+  <script>
+    // Snackbar function
+    function showSnackbar(message) {
+      const snackbar = document.getElementById("snackbar");
+      snackbar.textContent = message;
+      snackbar.className = "show";
+      setTimeout(() => { snackbar.className = snackbar.className.replace("show", ""); }, 3000);
+    }
+
+    // Handle patient form submission
+    document.getElementById("patientForm").addEventListener("submit", function (e) {
+      e.preventDefault();
+
+      const name = document.getElementById("patientName").value;
+      const age = document.getElementById("patientAge").value;
+
+      if (!name || !age) {
+        showSnackbar("Please fill out all fields!");
+        return;
+      }
+
+      // Send data to the server
+      fetch('/add-patient', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, age })
+      })
+        .then(response => {
+          if (response.ok) {
+            showSnackbar("Patient data saved successfully!");
+            // Close the modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById("patientModal"));
+            modal.hide();
+          } else {
+            showSnackbar("Failed to save patient data.");
+          }
+        })
+        .catch(() => showSnackbar("Error communicating with the server."));
+    });
+
+    // Toggle dark/light mode
+    $("#toggleTheme").click(function () {
+      $("body").toggleClass("bg-dark text-light");
+      $("#dataCard").toggleClass("bg-dark text-light");
+      if ($("body").hasClass("bg-dark")) {
+        $(this).text("☀️");
+      } else {
+        $(this).text("🌙");
+      }
+    });
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
